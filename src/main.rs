@@ -9,6 +9,8 @@ use crossterm::{
 };
 use reader::InputType;
 
+use crate::decoder::{Decoder, main_loop};
+
 const DENSITY: &'static str = "";
 
 #[tokio::main]
@@ -24,6 +26,8 @@ async fn main() -> Result<()> {
   // 1. Read video from file (later may support URI from Youtube and many else formats)
   let input = InputType::try_from("./data/test.mp4")?;
   println!("{input:?}");
+
+  Decoder::create_pipeline(input).and_then(main_loop)?;
 
   // stdout.execute(Show)?;
   // stdout.execute(LeaveAlternateScreen)?;
