@@ -1,0 +1,21 @@
+[package]
+name = "video-ascii"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# For displaying
+crossterm = "*"
+
+# For errors handling
+anyhow = "*"
+
+# For runtime
+tokio = { version = "*", features = ["full"] }
+tokio-util = { version = "*", features = ["full"] }
+
+# Handling video
+gst = { package = "gstreamer", version = "0.17", features = ["v1_16"] }
+gst_app = { package = "gstreamer-app", version = "0.17", features = ["v1_16"] }
