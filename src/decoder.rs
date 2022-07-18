@@ -1,10 +1,7 @@
-use byte_slice_cast::AsSliceOf;
 use gst::element_error;
 use gst::prelude::*;
-use gst::MessageView;
 
 use anyhow::{anyhow, Result};
-use tokio::runtime::Handle;
 use tokio::sync::mpsc::Sender;
 
 use crate::reader::InputType;
@@ -14,8 +11,8 @@ pub struct Decoder {}
 impl Decoder {
   pub fn create_pipeline(
     input: InputType,
-    width: usize,
-    height: usize,
+    width: u32,
+    height: u32,
     render_tx: Sender<Vec<u8>>,
   ) -> Result<gst::Pipeline> {
     gst::init()?;
@@ -44,9 +41,6 @@ impl Decoder {
         .build(),
     ));
 
-    // Remove later
-    let mut got_snapshot = false;
-
     appsink.set_callbacks(
       gst_app::AppSinkCallbacks::builder()
         .new_sample(move |appsink| {
@@ -59,11 +53,6 @@ impl Decoder {
             );
             gst::FlowError::Error
           })?;
-
-          if got_snapshot {
-            return Err(gst::FlowError::Eos);
-          }
-          got_snapshot = true;
 
           let caps = sample.caps().ok_or_else(|| {
             element_error!(
@@ -92,38 +81,18 @@ impl Decoder {
               gst::FlowError::Error
             })?;
 
-          let send_msg = || async {};
-
           tokio::runtime::Runtime::new()
             .unwrap()
-            .block_on(render_tx.send(frame.plane_data(0).unwrap().to_vec()));
+            .block_on(render_tx.send(frame.plane_data(0).unwrap().to_vec()))
+            .unwrap();
 
           Ok(gst::FlowSuccess::Ok)
         })
         .build(),
     );
 
+    pipeline.set_state(gst::State::Playing)?;
+
     Ok(pipeline)
   }
-}
-
-pub async fn main_loop(pipeline: gst::Pipeline, stop_tx: Sender<()>) -> Result<()> {
-  pipeline.set_state(gst::State::Playing)?;
-
-  let bus = pipeline
-    .bus()
-    .ok_or(anyhow!("Unable to get bus from pipeline"))?;
-
-  for msg in bus.iter_timed(gst::ClockTime::NONE) {
-    if let MessageView::Eos(..) = msg.view() {
-      println!("gonna break");
-      break;
-    }
-  }
-
-  stop_tx.send(()).await;
-
-  pipeline.set_state(gst::State::Null)?;
-
-  Ok(())
 }

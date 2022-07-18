@@ -1,15 +1,15 @@
 pub type Frame = Vec<Vec<String>>;
 
-pub fn new_frame(num_cols: usize, num_rows: usize) -> Frame {
-  let mut rows = Vec::with_capacity(num_rows);
-  for _ in 0..num_rows {
-    let mut row = Vec::with_capacity(num_cols);
-    for _ in 0..num_cols {
-      row.push("_".to_owned());
+pub fn new_frame(width: usize, height: usize) -> Frame {
+  let mut cols = Vec::with_capacity(width);
+  for _ in 0..=width {
+    let mut col = Vec::with_capacity(height);
+    for _ in 0..=height {
+      col.push("_".to_owned());
     }
-    rows.push(row);
+    cols.push(col);
   }
-  rows
+  cols
 }
 
 pub trait Drawable {

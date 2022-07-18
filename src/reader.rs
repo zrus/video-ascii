@@ -16,7 +16,7 @@ impl InputType<'_> {
     match self {
       InputType::Uri { uri } => Ok(format!("souphttpsrc location={uri}")),
       InputType::File { path } => Ok(format!("filesrc location={path}")),
-      _ => Err(anyhow!("Unable to create Gstreamer source from: {self:?}")),
+      // _ => Err(anyhow!("Unable to create Gstreamer source from: {self:?}")),
     }
   }
 }

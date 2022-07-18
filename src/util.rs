@@ -4,7 +4,7 @@ use std::ops::RangeInclusive;
 macro_rules! min {
     ( $( $x:expr ),* ) => {
         {
-            let mut min = u8::MAX;
+            let mut min = u16::MAX;
             $(
                 min = std::cmp::min(min, $x);
             )*
@@ -17,7 +17,7 @@ macro_rules! min {
 macro_rules! max {
     ( $( $x:expr ),* ) => {
         {
-            let mut max = u8::MIN;
+            let mut max = u16::MIN;
             $(
                 max = std::cmp::max(max, $x);
             )*
