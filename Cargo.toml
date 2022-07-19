@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 # For displaying
 crossterm = "*"
+terminal_size = "*"
 
 # For errors handling
 anyhow = "*"
@@ -19,3 +20,5 @@ tokio-util = { version = "*", features = ["full"] }
 # Handling video
 gst = { package = "gstreamer", version = "0.17", features = ["v1_16"] }
 gst_app = { package = "gstreamer-app", version = "0.17", features = ["v1_16"] }
+gst_video = { package = "gstreamer-video", version = "0.17" }
+byte-slice-cast = "1"
