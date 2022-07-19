@@ -6,6 +6,8 @@ mod reader;
 mod render;
 mod util;
 
+use std::time::Instant;
+
 use anyhow::{bail, Result};
 use crossterm::{
   cursor::{Hide, Show},
@@ -30,11 +32,7 @@ async fn main() -> Result<()> {
 
   let size = terminal_size();
   let (width, height) = if let Some((Width(w), Height(h))) = size {
-    println!("{w}:{h}");
-    // let h = h - 2;
-    // let w = h * 4;
-    // (w as usize, h as usize)
-    (234, 56)
+    (w as usize, (h - 1) as usize)
   } else {
     bail!("Unable to get current terminal size");
   };
@@ -54,7 +52,9 @@ async fn main() -> Result<()> {
     render::render(&mut stdout, &last_frame, &last_frame, true);
     let density = DENSITY.chars().collect::<Vec<char>>();
     let density_len = density.len() as u16;
+    let mut instant;
     while let Some(data) = render_rx.recv().await {
+      instant = Instant::now();
       let mut curr_frame = frame::new_frame(width, height);
       for x in 0..width {
         for y in 0..height {
@@ -69,6 +69,8 @@ async fn main() -> Result<()> {
       }
       render::render(&mut stdout, &last_frame, &curr_frame, false);
       last_frame = curr_frame;
+      let delta = instant.elapsed();
+      tokio::time::sleep(tokio::time::Duration::from_millis(std::cmp::max(33i64 - delta.as_millis() as i64, 0i64) as u64)).await;
     }
 
     pipeline.set_state(gst::State::Null).unwrap();

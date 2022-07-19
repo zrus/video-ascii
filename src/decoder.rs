@@ -20,7 +20,7 @@ impl Decoder {
     let pipeline = match input {
       InputType::Uri { .. } => todo!(),
       InputType::File { .. } => gst::parse_launch(&format!(
-        "{} ! decodebin ! videoconvert ! videoscale ! video/x-raw,width={width},height={height} ! appsink name=sink",
+        "{} ! decodebin ! videoconvert ! videorate ! video/x-raw,framerate=30/1 ! videoscale ! video/x-raw,width={width},height={height} ! appsink name=sink",
         input.to_gst_src()?
       ))?
       .downcast::<gst::Pipeline>()
