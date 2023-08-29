@@ -1,4 +1,4 @@
-use std::ops::Range;
+use ::std::ops::Range;
 
 #[macro_export]
 macro_rules! min {

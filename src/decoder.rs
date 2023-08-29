@@ -1,8 +1,7 @@
-use gst::element_error;
-use gst::prelude::*;
-
-use anyhow::{anyhow, Result};
-use tokio::sync::mpsc::Sender;
+use ::anyhow::{anyhow, Result};
+use ::gst::element_error;
+use ::gst::prelude::*;
+use ::std::sync::mpsc::Sender;
 
 use crate::reader::InputType;
 
@@ -33,7 +32,7 @@ impl Decoder {
       .downcast::<gst_app::AppSink>()
       .map_err(|_| anyhow!("Unable to downcast to appsink"))?;
 
-    appsink.set_property("sync", false)?;
+    appsink.set_property("sync", false);
 
     appsink.set_caps(Some(
       &gst::Caps::builder("video/x-raw")
@@ -81,10 +80,7 @@ impl Decoder {
               gst::FlowError::Error
             })?;
 
-          tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(render_tx.send(frame.plane_data(0).unwrap().to_vec()))
-            .unwrap();
+          _ = render_tx.send(frame.plane_data(0).unwrap().to_vec());
 
           Ok(gst::FlowSuccess::Ok)
         })

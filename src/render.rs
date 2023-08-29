@@ -1,6 +1,6 @@
-use std::io::{Stdout, Write};
+use ::std::io::{Stdout, Write};
 
-use crossterm::{
+use ::crossterm::{
   cursor::MoveTo,
   style::{Color, SetBackgroundColor},
   terminal::{Clear, ClearType},
