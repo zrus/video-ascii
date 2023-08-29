@@ -1,7 +1,7 @@
 use ::anyhow::{anyhow, Result};
 use ::gst::element_error;
 use ::gst::prelude::*;
-use ::std::sync::mpsc::Sender;
+use ::tokio::sync::mpsc::Sender;
 
 use crate::reader::InputType;
 
@@ -40,6 +40,7 @@ impl Decoder {
         .build(),
     ));
 
+    let rt = ::tokio::runtime::Handle::current();
     appsink.set_callbacks(
       gst_app::AppSinkCallbacks::builder()
         .new_sample(move |appsink| {
@@ -80,7 +81,8 @@ impl Decoder {
               gst::FlowError::Error
             })?;
 
-          _ = render_tx.send(frame.plane_data(0).unwrap().to_vec());
+          rt.block_on(render_tx.send(frame.plane_data(0).unwrap().to_vec()))
+            .unwrap();
 
           Ok(gst::FlowSuccess::Ok)
         })

@@ -5,11 +5,7 @@ mod reader;
 mod render;
 mod util;
 
-use ::std::{
-  io::Stdout,
-  sync::mpsc,
-  time::{Duration, Instant},
-};
+use ::std::{io::Stdout, time::Instant};
 
 use ::anyhow::{bail, Result};
 use ::clap::Parser;
@@ -21,6 +17,7 @@ use ::crossterm::{
 };
 use ::gst::traits::ElementExt;
 use ::terminal_size::{terminal_size, Height, Width};
+use ::tokio::{sync::mpsc, time};
 
 use reader::InputType;
 
@@ -46,21 +43,39 @@ async fn main() -> Result<()> {
   stdout.execute(EnterAlternateScreen)?;
   stdout.execute(Hide)?;
 
-  let (render_tx, render_rx) = mpsc::channel::<Vec<u8>>();
-  let render_handler = tokio::spawn(async move {
-    let pipeline = Decoder::create_pipeline(input, width as u32, height as u32, render_tx).unwrap();
-    let mut frames = Vec::new();
-    while let Ok(data) = render_rx.recv_timeout(Duration::from_millis(200)) {
-      frames.push(data);
-    }
-    pipeline.set_state(gst::State::Null).unwrap();
-
+  let (render_tx, mut render_rx) = mpsc::channel::<Vec<u8>>(1);
+  let render_handler = ::tokio::spawn(async move {
     let mut last_frame = frame::new_frame(width, height);
     let mut stdout = std::io::stdout();
     render::render(&mut stdout, &last_frame, &last_frame, true);
     let density = DENSITY.chars().collect::<Vec<char>>();
     let density_len = density.len() as u16;
     let mut instant = Instant::now();
+
+    let pipeline = Decoder::create_pipeline(input, width as u32, height as u32, render_tx).unwrap();
+    let mut frames = Vec::new();
+    loop {
+      ::tokio::select! {
+        Some(data) = render_rx.recv() => {
+          render(
+            &data,
+            width,
+            height,
+            &mut last_frame,
+            &mut instant,
+            &mut stdout,
+            density_len,
+            &density,
+          )
+          .await;
+          frames.push(data);
+        }
+        _ = time::sleep(time::Duration::from_millis(200)) => {
+          break;
+        }
+      }
+    }
+    pipeline.set_state(gst::State::Null).unwrap();
 
     while {
       for fr in &frames {
@@ -80,13 +95,9 @@ async fn main() -> Result<()> {
     } {}
   });
 
-  tokio::select! {
-    _ = control() => {
-      println!("done control");
-    }
-    _ = render_handler => {
-      println!("end video");
-    }
+  ::tokio::select! {
+    _ = control() => {}
+    _ = render_handler => {}
   }
 
   stdout.execute(Show)?;
@@ -98,7 +109,7 @@ async fn main() -> Result<()> {
 
 async fn control() {
   'mainloop: loop {
-    while event::poll(std::time::Duration::default()).unwrap() {
+    while event::poll(::std::time::Duration::default()).unwrap() {
       if let Event::Key(key_event) = event::read().unwrap() {
         match key_event.code {
           KeyCode::Esc | KeyCode::Char('q') => {
@@ -109,7 +120,7 @@ async fn control() {
         }
       }
     }
-    tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+    time::sleep(time::Duration::from_millis(1)).await;
   }
 }
 
@@ -139,9 +150,8 @@ async fn render(
   render::render(stdout, &last_frame, &curr_frame, false);
   *last_frame = curr_frame;
   let delta = instant.elapsed();
-  tokio::time::sleep(tokio::time::Duration::from_millis(std::cmp::max(
-    33i64 - delta.as_millis() as i64,
-    0i64,
-  ) as u64))
+  time::sleep(time::Duration::from_millis(
+    std::cmp::max(33i64 - delta.as_millis() as i64, 0i64) as u64,
+  ))
   .await;
 }
