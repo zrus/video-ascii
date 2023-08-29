@@ -77,7 +77,7 @@ async fn main() -> Result<()> {
     }
     pipeline.set_state(gst::State::Null).unwrap();
 
-    while {
+    while is_loop {
       for fr in &frames {
         render(
           &fr,
@@ -91,8 +91,7 @@ async fn main() -> Result<()> {
         )
         .await;
       }
-      is_loop
-    } {}
+    }
   });
 
   ::tokio::select! {
